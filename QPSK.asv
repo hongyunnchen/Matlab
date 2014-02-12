@@ -1,0 +1,61 @@
+close all
+clc
+clear all
+SNR_DB=[0:1:12];
+sum=1000000;
+data= randsrc(sum,2,[0 1]);
+[a1,b1]=find(data(:,1)==0&data(:,2)==0);
+message(a1)=-1-j;
+[a2,b2]=find(data(:,1)==0&data(:,2)==1);
+message(a2)=-1+j;
+[a3,b3]=find(data(:,1)==1&data(:,2)==0);
+message(a3)=1-j;
+[a4,b4]=find(data(:,1)==1&data(:,2)==1);
+message(a4)=1+j;
+scatterplot(message)
+title('B点信号的星座图')
+
+A=1;
+Tb=1;
+Eb=A*A*Tb;
+P_signal=Eb/Tb;
+NO=Eb./(10.^(SNR_DB/10));
+P_noise=P_signal*NO;
+sigma=sqrt(P_noise);
+for Eb_NO_id=1:length(sigma)
+    noise1=sigma(Eb_NO_id)*randn(1,sum);
+    noise2=sigma(Eb_NO_id)*randn(1,sum);
+    receive=message+noise1+noise2*j;
+    resum=0;
+    total=0;
+    m1=find(angle(receive)<=pi/2&angle(receive)>0);
+    remessage(1,m1)=1+j;
+    redata(m1,1)=1;
+    redata(m1,2)=1;
+    m2= find( angle(receive)>pi/2&angle(receive)<=pi);
+    remessage(1,m2)=-1+j;
+    redata(m2,1)=0;
+    redata(m2,2)=1;
+    m3=find( angle(receive)>-pi&angle(receive)<=-pi/2);
+    remessage(1,m3)=-1-j;
+    redata(m3,1)=0;
+    redata(m3,2)=0;
+    m4=find( angle(receive)>-pi/2&angle(receive)<=0);
+    remessage(1,m4)=1-j;
+    redata(m4,1)=1;
+    redata(m4,2)=0;
+    [resum,ratio1]=symerr(data,redata);
+    pbit(Eb_NO_id)=resum/(sum*2);
+    [total,ratio2]=symerr(message,remessage);
+    pe(Eb_NO_id)=total/sum;
+end
+scatterplot(receive)
+title('C点信号的星座图')
+Pe=1-(1-1/2*erfc(sqrt(10.^(SNR_DB/10)/2))).^2;
+Pbit=1/2*erfc(sqrt(10.^(SNR_DB/10)/2));
+figure(3)
+semilogy(SNR_DB,pe,':s',SNR_DB,Pe,'-*',SNR_DB,pbit,'-o',SNR_DB,Pbit,':+')
+legend('QPSK仿真误码率','QPSK理论误码率','QPSK仿真误比特率','QPSK理论误比特率',1)
+xlabel('信噪比/dB')
+ylabel('概率P')
+gird on
